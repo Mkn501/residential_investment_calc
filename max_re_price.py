@@ -61,6 +61,19 @@ def berechne_leverage_effekt(objektrendite_prozent, fremdkapital_zins_prozent, e
     # Leverage Formel
     # rGK = Objektrendite (Gesamtkapitalrendite)
     # rFK = Fremdkapitalzins
+    
+    # Avoid Division by Zero if Equity is 0%
+    if ek_anteil == 0:
+        # If Spread is positive, infinite return. If negative, infinite loss.
+        # We cap it at a high number for display or handle it gracefully.
+        spread = objektrendite_prozent - fremdkapital_zins_prozent
+        if spread > 0:
+            return 999.0 # Infinite positive return
+        elif spread < 0:
+            return -999.0 # Infinite negative return
+        else:
+            return objektrendite_prozent
+
     eigenkapitalrendite = objektrendite_prozent + (objektrendite_prozent - fremdkapital_zins_prozent) * (fk_anteil / ek_anteil)
     
     return eigenkapitalrendite

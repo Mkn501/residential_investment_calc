@@ -62,6 +62,8 @@ Create a Streamlit application with the following sections:
     *   **PDF Export**: Button to download "Investment Dossier".
     *   **[NEW] Disclaimer**: Prominent footer stating "Educational Purpose Only. Investments at own risk."
 
+
+
 ### [Dependencies]
 
 #### [NEW] [requirements.txt](file:///Users/mkn501/Library/CloudStorage/GoogleDrive-minkngu@gmail.com/Meine%20Ablage/VS/RE/requirements.txt)
@@ -84,3 +86,10 @@ Create a Streamlit application with the following sections:
 *   Interact with sliders and inputs to ensure calculations update in real-time.
 *   Verify PDF export works.
 *   Check Localization toggles.
+
+## Phase 3: UX Refinement (Based on Alternative Design)
+*   **Visual Hierarchy**: Create distinct visual blocks (Cards) for "Status Quo" vs "Potential" using `st.container` + colors.
+*   **Direct Comparison**: Replace abstract charts with a simple "Property vs Bond" bar chart + explicit "Verdict" text (Green/Red).
+*   **Fair Price Tab**: Implement the "Reverse Calculator" flow: Target Yield -> Fair Price -> "Overpayment" Warning.
+*   **Input Grouping**: Group percentage inputs (Makler, Tax, Notary) horizontally to save space.
+*   **Key Metrics**: significantly increase font size/visibilty for Net Cashflow & Yield.
