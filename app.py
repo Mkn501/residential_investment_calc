@@ -36,6 +36,31 @@ TEXTS = {
         "tab_leverage": "3. Leverage & Cashflow",
         "tab_tax": "4. Steuern & Sanierung",
         "tab_due_diligence": "5. Due Diligence",
+        "tab_report": "6. Verhandlungs-Dossier",
+        "report_header": "📄 Verhandlungs-Dossier & Kaufangebot",
+        "report_intro": "Dieses Modul erstellt automatisch ein professionelles Investoren-Dossier, um einen niedrigeren Kaufpreis zu verhandeln.",
+        "rep_sec0": "1. Basisdaten & Investitionsvolumen",
+        "rep_purchase_price": "Kaufpreis",
+        "rep_closing_costs": "Kaufnebenkosten",
+        "rep_total_invest": "Gesamt-Invest",
+        "rep_rent_income": "Mieteinnahmen (Ist)",
+        "rep_sec1": "2. Finanzielle Realität",
+        "rep_yield": "Aktuelle Rendite",
+        "rep_interest": "Zinssatz (Bank)",
+        "rep_gap": "Hebel-Lücke (Gap)",
+        "rep_neg_lev": "NEGATIVER HEBEL: Die Rendite ({:.2f}%) liegt unter dem Zins ({:.2f}%). Nutzen Sie das als Argument!",
+        "rep_sec2": "3. Fairer Kaufpreis (Herleitung)",
+        "rep_target_yield": "Wunsch-Rendite (%)",
+        "rep_fair_val": "Fairer Marktwert",
+        "rep_sec3": "4. Dossier Herunterladen",
+        "rep_yield_settings": "🎯 Wunsch-Rendite Einstellungen",
+        "rep_caption": "Basierend auf {:.1f}% Wunsch-Rendite & {:.2f}% Kaufnebenkosten.",
+        "rep_max_invest": "Max. Gesamt-Invest",
+        "rep_deriv_title": "📝 Detaillierte Herleitung anzeigen",
+        "rep_step1": "1. Bereinigte Nettomiete (p.a.)",
+        "rep_step2": "2. Maximales Volumen (All-in)",
+        "rep_step3": "3. Abzug Nebenkosten ({:.2f}%)",
+        "rep_step4": "4. Fairer Kaufpreis",
         "intro_header": "👋 Willkommen beim Immobilien-Investment-Rechner",
         "intro_text": """
         Dieses Tool hilft Ihnen, eine Immobilie als Kapitalanlage rational zu bewerten.
@@ -159,6 +184,31 @@ TEXTS = {
         "tab_leverage": "3. Leverage & Cashflow",
         "tab_tax": "4. Tax & Renovation",
         "tab_due_diligence": "5. Due Diligence",
+        "tab_report": "6. Negotiation Dossier",
+        "report_header": "📄 Negotiation Dossier & Offer",
+        "report_intro": "This module automatically generates a professional investor dossier to negotiate a lower purchase price.",
+        "rep_sec0": "1. Base Figures & Investment Volume",
+        "rep_purchase_price": "Purchase Price",
+        "rep_closing_costs": "Closing Costs",
+        "rep_total_invest": "Total Investment",
+        "rep_rent_income": "Current Rent Income",
+        "rep_sec1": "2. Financial Reality Check",
+        "rep_yield": "Current Yield",
+        "rep_interest": "Interest Rate",
+        "rep_gap": "Leverage Gap",
+        "rep_neg_lev": "NEGATIVE LEVERAGE: The Yield ({:.2f}%) is lower than the Interest Rate ({:.2f}%). Use this argument to lower the price!",
+        "rep_sec2": "3. Fair Price Derivation",
+        "rep_target_yield": "Negotiation Target Yield (%)",
+        "rep_fair_val": "Fair Market Value",
+        "rep_sec3": "4. Download Dossier",
+        "rep_yield_settings": "🎯 Target Yield Settings",
+        "rep_caption": "Based on {:.1f}% Target Yield & {:.2f}% Closing Costs.",
+        "rep_max_invest": "Max All-in",
+        "rep_deriv_title": "📝 Show Detailed Derivation",
+        "rep_step1": "1. Adjusted Net Rent (p.a.)",
+        "rep_step2": "2. Max Volume (All-in)",
+        "rep_step3": "3. Deduct Closing Costs ({:.2f}%)",
+        "rep_step4": "4. Fair Price",
         "intro_header": "👋 Welcome to the Real Estate Investment Calculator",
         "intro_text": """
         This tool helps you rationally evaluate a property as an investment.
@@ -303,59 +353,246 @@ def get_traffic_light(value, threshold_green, threshold_yellow, invert=False):
         return "🔴"
 
 
-# --- PDF HELPER ---
-def create_pdf(lang_code, inputs, results):
+# --- PDF HELPER (NEGOTIATION DOSSIER) ---
+def create_pdf(lang_code, inputs, results, extra_params={}):
     pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', 16)
+    pdf.set_auto_page_break(auto=True, margin=15)
     
+    # --- LOCALIZATION DICT ---
+    T_PDF = {
+        "DE": {
+            "title": "Investitions-Analyse & Verhandlungs-Dossier",
+            "date": "Datum",
+            "p1_header": "1. Finanzielle Realität (Status Quo)",
+            "p1_verdict_neg": "FAZIT: Negativer Hebel (Rendite < Zins). Das Investment vernichtet monatlich Kapital. Eine Preisanpassung ist wirtschaftlich zwingend .",
+            "p1_verdict_pos": "FAZIT: Das Investment ist cashflow-neutral oder positiv.",
+            "p1_gap_text": "Vergleich mit Risiko-freier Anlage (Anleihe {:.2f}%) und Finanzierungskosten ({:.2f}%): Die aktuelle Netto-Mietrendite von {:.2f}% zeigt eine {} Lücke von {:.2f}%.",
+            "pos": "POSITIVE", "neg": "NEGATIVE",
+            "scen_title": "Optimierungs-Szenario (Potenzial)",
+            "scen_text": "Durch eine Mietanpassung von +{:.1f}% steigt die Miete (Soll) auf {:.2f} EUR. Die Rendite verbessert sich auf {:.2f}%.",
+            "scen_gap": "Neue Hebel-Lücke (Soll): {:.2f}%",
+            "p2_header": "2. Herleitung Fairer Kaufpreis",
+            "p2_target": "Marktübliche Ziel-Rendite:",
+            "p2_rent": "Bereinigte Nettomiete (p.a.):",
+            "p2_max_vol": "Max. Investitionsvolumen (All-in):",
+            "p2_expl": "(Berechnet als: Nettomiete / {}%)",
+            "p2_costs": "Abzug Kaufnebenkosten ({:.2f}%):",
+            "p2_final": "MAXIMALER KAUFPREIS:",
+            "p3_header": "FORMALES KAUFANGEBOT",
+            "letter": """
+Sehr geehrte Damen und Herren,
+
+vielen Dank für die Möglichkeit, das Objekt zu prüfen.
+Basierend auf unserer kaufmännischen Due Diligence und dem aktuellen Zinsumfeld ({interest}%) müssen wir einer disziplinierten Investitionsstrategie folgen.
+
+Um eine nachhaltige Bewirtschaftung bei einer Ziel-Rendite von {target}% sicherzustellen (reflektiert den risikofreien Zins von {bond}% plus Risikoprämie), liegt unsere maximale Bewertung für dieses Objekt bei:
+
+{price} EUR
+
+Diese Kalkulation berücksichtigt notwendige Instandhaltungsrücklagen und die nicht umlagefähigen Bewirtschaftungskosten.
+
+Dieses Angebot ist 14 Tage gültig und steht unter dem Vorbehalt der finalen Finanzierungszusage.
+Wir sind bereit, kurzfristig einen Notartermin wahrzunehmen.
+
+Mit freundlichen Grüßen,
+"""
+        },
+        "EN": {
+            "title": "Investment Analysis & Negotiation Dossier",
+            "date": "Date",
+            "p1_header": "1. Financial Reality Check (Status Quo)",
+            "p1_verdict_neg": "VERDICT: Negative Leverage (Yield < Interest). The investment loses capital monthly. A price adjustment is strictly necessary.",
+            "p1_verdict_pos": "VERDICT: The investment is cashflow neutral or positive.",
+            "p1_gap_text": "Compared to the Risk-Free Bond Rate ({:.2f}%) and Financing Interest ({:.2f}%): The Net Initial Yield of {:.2f}% shows a {} Leverage Gap of {:.2f}%.",
+            "pos": "POSITIVE", "neg": "NEGATIVE",
+            "scen_title": "Optimization Scenario (Potential)",
+            "scen_text": "With a rent adjustment of +{:.1f}%, the rent (target) increases to {:.2f} EUR. The yield improves to {:.2f}%.",
+            "scen_gap": "New Leverage Gap (Potential): {:.2f}%",
+            "p2_header": "2. Fair Price Derivation",
+            "p2_target": "Target Yield (Market Standard):",
+            "p2_rent": "Adjusted Net Rent (p.a.):",
+            "p2_max_vol": "Max. Investment Volume (All-in):",
+            "p2_expl": "(Calculated as: Net Rent / {}%)",
+            "p2_costs": "Less Closing Costs ({:.2f}%):",
+            "p2_final": "MAXIMUM PURCH. PRICE:",
+            "p3_header": "FORMAL OFFER LETTER",
+            "letter": """
+Dear Sir or Madam,
+
+Thank you for the opportunity to review the property.
+Based on our commercial due diligence and the current interest rate environment ({interest}%), we must adhere to a disciplined investment strategy.
+
+To ensure sustainable operations at a target yield of {target}% (reflecting the risk-free rate of {bond}% plus risk premium), our maximum valuation for this property is:
+
+{price} EUR
+
+This calculation calculates accounts for necessary maintenance reserves and non-recoverable operating costs.
+
+This offer is valid for 14 days and is subject to final financing approval.
+We are prepared to move quickly with the notary appointments.
+
+Sincerely,
+"""
+        }
+    }
+    
+    # Select Language Dict
+    L = T_PDF.get(lang_code, T_PDF["EN"])
+    
+    # --- HELPER: SAFE TEXT ---
     def safe_text(text):
-        """Replace non-latin-1 chars"""
         replacements = {
-            "€": "EUR", "⚠️": "[WARN]", "✅": "[OK]", "🔴": "[BAD]", 
-            "🟡": "[AVG]", "🟢": "[GOOD]", "„": '"', "“": '"',
-            "ℹ️": "[INFO]", "🔢": "#", "📈": "(up)", "📉": "(down)",
-            "🚀": "(!)", "💰": "($)", "🕵️‍♂️": "[Check]", "🧠": "[Mind]"
+            "€": "EUR", "⚠️": "(!)", "✅": "[OK]", "🔴": "(!)", 
+            "🟡": "(-)", "🟢": "(+)", "„": '"', "“": '"', "ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss",
+            "Ä": "Ae", "Ö": "Oe", "Ü": "Ue"
         }
         for k, v in replacements.items():
             text = text.replace(k, v)
-        
         try:
             return text.encode('latin-1', 'replace').decode('latin-1')
-        except Exception as e:
+        except:
             return "?"
 
-    title = "Immobilien Investment Dossier" if lang_code == "DE" else "Real Estate Investment Dossier"
-    pdf.cell(0, 10, safe_text(title), ln=True, align='C')
-    pdf.ln(10)
-    
-    pdf.set_font("Arial", '', 12)
-    
-    # 1. Inputs
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, safe_text("1. Key Data / Eckdaten"), ln=True)
-    pdf.set_font("Arial", '', 12)
-    
-    for k, v in inputs.items():
-        pdf.cell(100, 8, safe_text(f"{k}:"), 0)
-        pdf.cell(0, 8, safe_text(f"{v}"), ln=True)
-    
+    # --- PAGE 1: EXECUTIVE SUMMARY ---
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 20)
+    pdf.cell(0, 10, safe_text(L["title"]), 0, 1, 'C')
     pdf.ln(5)
     
-    # 2. Results
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, safe_text("2. Analysis / Analyse"), ln=True)
-    pdf.set_font("Arial", '', 12)
+    pdf.set_font("Arial", '', 10)
+    pdf.cell(0, 10, safe_text(f"{L['date']}: {extra_params.get('date', 'Today')}"), 0, 1, 'C')
+    pdf.ln(10)
     
+    # Section: Key Metrics
+    pdf.set_font("Arial", 'B', 14)
+    pdf.set_fill_color(240, 240, 240)
+    pdf.cell(0, 10, safe_text(L["p1_header"]), 1, 1, 'L', 1)
+    
+    pdf.set_font("Arial", '', 12)
+    pdf.ln(5)
+    
+    for k, v in inputs.items():
+        pdf.cell(90, 8, safe_text(f"{k}:"), 0, 0)
+        pdf.cell(90, 8, safe_text(str(v)), 0, 1)
+        
+    pdf.ln(5)
+    pdf.set_font("Arial", 'B', 12)
     for k, v in results.items():
-        pdf.cell(100, 8, safe_text(f"{k}:"), 0)
-        pdf.cell(0, 8, safe_text(f"{v}"), ln=True)
+        pdf.cell(90, 8, safe_text(f"{k}:"), 0, 0)
+        pdf.cell(90, 8, safe_text(str(v)), 0, 1)
         
     pdf.ln(10)
-    pdf.set_font("Arial", 'I', 10)
-    pdf.multi_cell(0, 5, safe_text("Disclaimer: Educational Purpose Only. No Financial Advice."))
     
-    # Return bytes directly
+    # Section: Reality Check / Yield Gap
+    bond = extra_params.get('bond_rate', 2.5)
+    interest = extra_params.get('zins', 3.8)
+    yield_num = extra_params.get('yield_num', 0.0)
+    gap = yield_num - interest
+    
+    pdf.set_font("Arial", 'B', 14)
+    # Reuse Header style if needed, or just text
+    # pdf.cell(0, 10, safe_text("2. Analysis"), 1, 1, 'L', 1) 
+    
+    pdf.set_font("Arial", '', 11)
+    gap_label = L["pos"] if gap > 0 else L["neg"]
+    
+    pdf.multi_cell(0, 6, safe_text(
+        L["p1_gap_text"].format(bond, interest, yield_num, gap_label, gap)
+    ))
+    pdf.ln(5)
+    
+    if gap < 0:
+        pdf.set_text_color(200, 0, 0)
+        pdf.multi_cell(0, 6, safe_text(L["p1_verdict_neg"]))
+    else:
+        pdf.multi_cell(0, 6, safe_text(L["p1_verdict_pos"]))
+        
+    # --- POTENTIAL SCENARIO (If applicable) ---
+    scen_inc = extra_params.get('scen_increase', 0)
+    if scen_inc > 0:
+        pdf.ln(5)
+        pdf.set_text_color(0, 0, 0) # Reset color
+        pdf.set_fill_color(220, 255, 220) # Light Green
+        pdf.set_font("Arial", 'B', 12)
+        pdf.cell(0, 8, safe_text(L["scen_title"]), 1, 1, 'L', 1)
+        
+        pdf.set_font("Arial", '', 11)
+        pot_rent = extra_params.get('pot_rent_pa', 0)
+        pot_yield = extra_params.get('pot_yield', 0)
+        pot_gap = pot_yield - interest
+        
+        pdf.multi_cell(0, 6, safe_text(
+            L["scen_text"].format(scen_inc, pot_rent, pot_yield)
+        ))
+        
+        # Gap Visualization
+        gap_label_pot = L["pos"] if pot_gap > 0 else L["neg"]
+        pdf.cell(0, 6, safe_text(L["scen_gap"].format(pot_gap) + f" ({gap_label_pot})"), 0, 1)
+        pdf.set_text_color(0, 0, 0)
+
+    # --- PAGE 2: FAIR PRICE DERIVATION ---
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(0, 10, safe_text(L["p2_header"]), 0, 1, 'L')
+    pdf.ln(5)
+    
+    # Logic
+    target_yield = extra_params.get('target_yield', 3.5)
+    km_pa = extra_params.get('km_pa', 0)
+    cost_pa = extra_params.get('cost_pa', 0)
+    net_rent = km_pa - cost_pa
+    
+    # Calc
+    max_invest = net_rent / (target_yield/100) if target_yield else 0
+    p_makler = extra_params.get('p_makler', 3.57)
+    p_tax = extra_params.get('p_tax', 3.5)
+    p_notar = extra_params.get('p_notar', 2.0)
+    total_costs_pct = (p_makler + p_tax + p_notar)/100
+    
+    fair_price = max_invest / (1 + total_costs_pct)
+    
+    pdf.set_font("Arial", '', 12)
+    pdf.cell(0, 8, safe_text(f"{L['p2_target']} {target_yield:.2f} %"), 0, 1)
+    pdf.ln(5)
+    
+    # Table like text
+    pdf.cell(100, 8, safe_text(L["p2_rent"]), 0, 0)
+    pdf.cell(50, 8, safe_text(f"{net_rent:,.2f} EUR"), 0, 1, 'R')
+    
+    pdf.cell(100, 8, safe_text(L["p2_max_vol"]), 0, 0)
+    pdf.cell(50, 8, safe_text(f"{max_invest:,.2f} EUR"), 0, 1, 'R')
+    pdf.set_font("Arial", 'I', 10)
+    pdf.cell(0, 5, safe_text(L["p2_expl"].format(target_yield)), 0, 1)
+    
+    pdf.ln(5)
+    pdf.set_font("Arial", '', 12)
+    pdf.cell(100, 8, safe_text(L["p2_costs"].format(total_costs_pct*100)), 0, 0)
+    costs_abs = max_invest - fair_price
+    pdf.cell(50, 8, safe_text(f"- {costs_abs:,.2f} EUR"), 0, 1, 'R')
+    
+    pdf.ln(2)
+    pdf.set_fill_color(220, 255, 220)
+    pdf.set_font("Arial", 'B', 14)
+    pdf.cell(100, 12, safe_text(L["p2_final"]), 1, 0, 'L', 1)
+    pdf.cell(50, 12, safe_text(f"{fair_price:,.2f} EUR"), 1, 1, 'R', 1)
+    
+    # --- PAGE 3: OFFER LETTER ---
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 14)
+    pdf.cell(0, 10, safe_text(L["p3_header"]), 0, 1, 'C')
+    pdf.ln(10)
+    
+    pdf.set_font("Arial", '', 11)
+    
+    formatted_letter = L["letter"].format(
+        interest=interest,
+        target=target_yield,
+        bond=bond,
+        price=f"{fair_price:,.2f}"
+    )
+    
+    pdf.multi_cell(0, 6, safe_text(formatted_letter))
+    
     return pdf.output(dest='S').encode('latin-1')
 
 # --- MAIN GUI ---
@@ -368,6 +605,10 @@ if 'km' not in st.session_state: st.session_state.km = 10800.0
 if 'cost' not in st.session_state: st.session_state.cost = 960.0
 if 'zins' not in st.session_state: st.session_state.zins = 3.8
 if 'ek' not in st.session_state: st.session_state.ek = 20.0
+if 'p_makler' not in st.session_state: st.session_state.p_makler = 3.57
+if 'p_tax' not in st.session_state: st.session_state.p_tax = 3.5
+if 'p_notar' not in st.session_state: st.session_state.p_notar = 2.0
+if 'scen_increase' not in st.session_state: st.session_state.scen_increase = 0
 
 # Sidebar Navigation
 with st.sidebar:
@@ -381,7 +622,7 @@ with st.sidebar:
     ]
     nav_selection = st.radio(
         "Navigation", 
-        [T["tab_intro"], T["tab_status"], T["tab_scenario"], T["tab_leverage"], T["tab_tax"], T["tab_due_diligence"]]
+        [T["tab_intro"], T["tab_status"], T["tab_scenario"], T["tab_leverage"], T["tab_tax"], T["tab_due_diligence"], T["tab_report"]]
     )
 
 st.title(T["title"])
@@ -393,9 +634,12 @@ with st.sidebar:
     
     st.caption("Kaufnebenkosten / Closing Costs (%)")
     col_nk1, col_nk2, col_nk3 = st.columns(3)
-    p_makler = col_nk1.number_input("Makler", value=3.57, step=0.1)
-    p_tax = col_nk2.number_input("Tax/Steuer", value=3.5, step=0.1)
-    p_notar = col_nk3.number_input("Notar", value=2.0, step=0.1)
+    p_makler = col_nk1.number_input("Makler", step=0.1, key="p_makler")
+    p_tax = col_nk2.number_input("Tax/Steuer", step=0.1, key="p_tax")
+    p_notar = col_nk3.number_input("Notar", step=0.1, key="p_notar")
+    
+    st.markdown("---")
+    st.warning(T["disclaimer"])
 
 # --- PAGE RENDERING ---
 
@@ -455,7 +699,7 @@ elif nav_selection == T["tab_scenario"]:
             rent_cap = 15 if loc_setting == "Active" else 20
 
         with col_slider:
-            increase = st.slider(T["scen_header"], 0, 30, rent_cap, 1)
+            increase = st.slider(T["scen_header"], 0, 30, 0, 1, key="scen_increase")
     
     # Validation & Logic
     if increase > rent_cap:
@@ -478,11 +722,13 @@ elif nav_selection == T["tab_leverage"]:
     
     # --- FINANCING INPUTS (Moved to Tab) ---
     with st.expander(T["fin_settings_header"], expanded=True):
-        c_zins, c_ek = st.columns(2)
+        c_zins, c_ek, c_bond = st.columns(3)
         with c_zins:
             zins = st.slider(T["input_interest"], min_value=1.0, max_value=6.0, value=3.8, step=0.1, key="zins")
         with c_ek:
             ek_quote = st.slider(T["input_equity"], min_value=0, max_value=100, value=20, step=5, key="ek")
+        with c_bond:
+            bond_rate = st.number_input("Risk-free (Bund) %", min_value=0.0, max_value=10.0, value=2.5, step=0.1, key="bond_rate")
             
     st.markdown("---")
     st.subheader(T["lev_chart_title"])
@@ -500,7 +746,7 @@ elif nav_selection == T["tab_leverage"]:
     ax.plot(x_zins, y_ek_yield, label="EK-Rendite", color="blue", linewidth=2)
     ax.axhline(0, color='grey', linewidth=0.8)
     ax.axvline(zins, color='red', linestyle='--', label=f"Ihr Zins ({zins}%)")
-    ax.axhline(2.8, color='green', linestyle=':', label="Bund (2.8%)")
+    ax.axhline(bond_rate, color='green', linestyle=':', label=f"Bund ({bond_rate}%)")
     ax.set_xlabel("Zins (%)")
     ax.set_ylabel("Eigenkapital-Rendite (%)")
     ax.grid(True, alpha=0.3)
@@ -513,7 +759,7 @@ elif nav_selection == T["tab_leverage"]:
     st.markdown("---")
     
     # --- SECTION 1: BOND COMPARISON ---
-    bond_rate = 2.8
+    # bond_rate is now defined above
     ek_yield_leverage = re_tools.berechne_leverage_effekt(rendite, zins, ek_quote) 
     spread = ek_yield_leverage - bond_rate
     
@@ -647,6 +893,150 @@ elif nav_selection == T["tab_tax"]:
     with st.expander(T["tax_expl_title"]):
         st.markdown(T["tax_expl_text"])
 
+# 6. NEGOTIATION DOSSIER
+elif nav_selection == T["tab_report"]:
+    st.header(T["report_header"])
+    st.info(T["report_intro"])
+    
+    # Needs Params from other tabs (use session state or defaults)
+    rep_bond = st.session_state.get('bond_rate', 2.5)
+    rep_zins = st.session_state.get('zins', 3.8)
+    rep_km = st.session_state.km
+    rep_cost = st.session_state.cost
+    
+    # 0. Base Figures
+    st.subheader(T["rep_sec0"])
+    c_base1, c_base2 = st.columns(2)
+    
+    with c_base1:
+        st.metric(T["rep_total_invest"], f"{invest:,.2f} €", help=f"{kaufpreis:,.2f} € {T['rep_purchase_price']} + {NK_EURO:,.2f} € {T['rep_closing_costs']}")
+        st.caption(f"🏠 {kaufpreis:,.0f} € + 🏗️ {NK_EURO:,.0f} €")
+        
+    with c_base2:
+        st.metric(T["rep_rent_income"], f"{kaltmiete_pa:,.2f} €", "p.a.")
+    
+    st.markdown("---")
+    
+    # 1. Reality Check
+    st.subheader(T["rep_sec1"])
+    col_rep1, col_rep2, col_rep3 = st.columns(3)
+    
+    col_rep1.metric(T["rep_yield"], f"{rendite:.2f} %", delta=f"{rendite-rep_bond:.2f} % vs Bond")
+    col_rep1.caption(f"{T['rep_rent_income']}: {kaltmiete_pa:,.0f} €")
+    col_rep2.metric(T["rep_interest"], f"{rep_zins:.2f} %", delta=None)
+    
+    gap = rendite - rep_zins
+    col_rep3.metric(T["rep_gap"], f"{gap:.2f} %", delta=get_traffic_light(gap, 0.5, 0), delta_color="normal")
+    
+    if gap < 0:
+        st.error(f"🔴 {T['rep_neg_lev'].format(rendite, rep_zins)}")
+
+    # Add Potential Yield (Scenario)
+    scen_increase = st.session_state.get('scen_increase', 0)
+    
+    new_rent_rep = re_tools.berechne_mietpotential(rep_km, scen_increase)
+    pot_yield_rep, _, _ = re_tools.berechne_netto_mietrendite(kaufpreis, NK_EURO, new_rent_rep, rep_cost)
+    pot_gap = pot_yield_rep - rep_zins
+    
+    st.markdown("---")
+    st.caption(f"Szenario: Mietanpassung +{scen_increase}%: {new_rent_rep:,.0f} € (Soll)")
+    
+    c_pot1, c_pot2, c_pot3 = st.columns(3)
+    c_pot1.metric(f"Soll-Rendite", f"{pot_yield_rep:.2f} %", delta=f"+{(pot_yield_rep-rendite):.2f}% vs Ist")
+    
+    c_pot2.metric(T["rep_interest"], f"{rep_zins:.2f} %", delta=None)
+    
+    c_pot3.metric("Soll-Lücke (Gap)", f"{pot_gap:.2f} %", delta=get_traffic_light(pot_gap, 0.5, 0), delta_color="normal")
+
+    st.markdown("---")
+
+    # 2. Fair Price Calc
+    st.subheader(T["rep_sec2"])
+    
+    # Adjustable Target Yield
+    with st.expander(T["rep_yield_settings"], expanded=True):
+        target_yield = st.number_input(
+            T["rep_target_yield"], 
+            min_value=0.1, max_value=10.0, value=3.5, step=0.1,
+            help="Standard ~3.5-4.5%"
+        )
+    
+    net_rent = rep_km - rep_cost
+    max_invest_target = net_rent / (target_yield / 100)
+    
+    # Reverse Closing Costs
+    factor_nk = (p_makler + p_tax + p_notar) / 100
+    fair_price_calc = max_invest_target / (1 + factor_nk)
+    diff_price = kaufpreis - fair_price_calc
+    
+    c_fair1, c_fair2 = st.columns(2)
+    with c_fair1:
+        st.metric(T["rep_fair_val"], f"{fair_price_calc:,.2f} €", delta=f"-{diff_price:,.2f} € vs Ask", delta_color="inverse")
+    with c_fair2:
+        st.caption(T["rep_caption"].format(target_yield, factor_nk*100))
+        st.write(f"{T['rep_max_invest']}: {max_invest_target:,.2f} €")
+    
+    # Detailed Derivation Logic
+    with st.expander(T["rep_deriv_title"]):
+        st.markdown(f"""
+        **{T["rep_step1"]}**  
+        `{rep_km:,.2f} € (Miete) - {rep_cost:,.2f} € (Kosten) = {net_rent:,.2f} €`
+        
+        **{T["rep_step2"]}**  
+        `{net_rent:,.2f} € / {target_yield/100:.3f} = {max_invest_target:,.2f} €`
+        
+        **{T["rep_step3"].format(factor_nk*100)}**  
+        `{max_invest_target:,.2f} € / (1 + {factor_nk:.4f}) = {fair_price_calc:,.2f} €`
+        
+        **{T["rep_step4"]}**  
+        **`= {fair_price_calc:,.2f} €`**
+        """)
+        
+    st.markdown("---")
+    
+    # 3. PDF Generation
+    st.subheader(T["rep_sec3"])
+    
+    # Pre-Generate PDF Logic
+    inputs_pdf = {
+        T["rep_purchase_price"]: f"{kaufpreis:,.2f} EUR",
+        T["rep_rent_income"]: f"{kaltmiete_pa:,.2f} EUR",
+        T["rep_closing_costs"]: f"{NK_EURO:,.2f} EUR"
+    }
+    results_pdf = {
+        T["rep_yield"]: f"{rendite:.2f} %",
+        T["rep_fair_val"]: f"{fair_price_calc:,.2f} EUR"
+    }
+    
+    import datetime
+    today_str = datetime.date.today().strftime("%d.%m.%Y")
+    
+    extra_params = {
+        'bond_rate': rep_bond,
+        'zins': rep_zins,
+        'yield_num': rendite,
+        'target_yield': target_yield,
+        'km_pa': rep_km,
+        'cost_pa': rep_cost,
+        'p_makler': st.session_state.p_makler,
+        'p_tax': st.session_state.p_tax,
+        'p_notar': st.session_state.p_notar,
+        'date': today_str,
+        'scen_increase': scen_increase,
+        'pot_rent_pa': new_rent_rep,
+        'pot_yield': pot_yield_rep
+    }
+    
+    # Generate PDF Bytes
+    pdf_bytes = create_pdf(st.session_state.lang, inputs_pdf, results_pdf, extra_params)
+    
+    # download_button (Standard Streamlit Widget)
+    st.download_button(
+        label=f"📥 {T['rep_sec3']} (.pdf)",
+        data=pdf_bytes,
+        file_name="Negotiation_Dossier.pdf",
+        mime="application/pdf"
+    )
 
 # 5. DUE DILIGENCE
 elif nav_selection == T["tab_due_diligence"]:
@@ -673,37 +1063,5 @@ elif nav_selection == T["tab_due_diligence"]:
         st.markdown(T["dd_expl_text"])
 
 # --- FOOTER & PDF EXPORT ---
-with st.sidebar:
-    st.markdown("---")
-    st.header("💾 Export")
-    
-    # Prepare Data for PDF
-    pdf_zins = st.session_state.get('zins', 3.8)
-    pdf_ek = st.session_state.get('ek', 20.0)
-
-    input_data = {
-        T["input_price"]: f"{kaufpreis:,.2f} EUR",
-        T["input_rent"]: f"{kaltmiete_pa:,.2f} EUR",
-        T["input_interest"]: f"{pdf_zins} %",
-        T["input_equity"]: f"{pdf_ek} %"
-    }
-    result_data = {
-        "Invest (All-in)": f"{invest:,.2f} EUR",
-        T["calc_yield"]: f"{rendite:.2f} %",
-        "Cashflow (p.m.)": f"{(re_tools.berechne_cashflow_detail(kaufpreis, NK_EURO, kaltmiete_pa, costs_pa, pdf_zins, pdf_ek)['cashflow']/12):,.2f} EUR"
-    }
-    
-    try:
-        pdf_bytes = create_pdf(st.session_state.lang, input_data, result_data)
-        st.caption(f"Debug: PDF Size = {len(pdf_bytes)} bytes")
-        
-        import base64
-        b64_pdf = base64.b64encode(pdf_bytes).decode()
-        href = f'<a href="data:application/pdf;base64,{b64_pdf}" download="investment_dossier.pdf">📄 Download PDF</a>'
-        st.markdown(href, unsafe_allow_html=True)
-        
-    except Exception as e:
-        st.error(f"PDF Error: {e}")
-    
-    st.markdown("---")
-    st.caption(T["disclaimer"])
+# --- PDF EXPORT ---
+# Moved to Tab 6: Negotiation Dossier
