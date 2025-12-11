@@ -39,6 +39,10 @@ def berechne_netto_mietrendite(kaufpreis, nebenkosten, kaltmiete_pa, bewirtschaf
     """
     reinertrag = kaltmiete_pa - bewirtschaftungskosten_pa
     gesamtinvest = kaufpreis + nebenkosten
+    
+    if gesamtinvest == 0:
+        return 0, reinertrag, 0
+        
     rendite = (reinertrag / gesamtinvest) * 100
     return rendite, reinertrag, gesamtinvest
 

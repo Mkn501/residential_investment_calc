@@ -30,11 +30,27 @@ TEXTS = {
         "input_loc": "Mietpreisbremse (Ort)",
         "loc_active": "Aktiv (max 15% Erhöhung)",
         "loc_inactive": "Inaktiv (max 20% Erhöhung)",
-        "tab_status": "1. Ist-Mietrendite",
-        "tab_scenario": "2. Miet-Szenario",
+        "tab_intro": "Einführung & Anleitung",
+        "tab_status": "Ist-Mietrendite",
+        "tab_scenario": "Miet-Szenario",
         "tab_leverage": "3. Leverage & Cashflow",
         "tab_tax": "4. Steuern & Sanierung",
         "tab_due_diligence": "5. Due Diligence",
+        "intro_header": "👋 Willkommen beim Immobilien-Investment-Rechner",
+        "intro_text": """
+        Dieses Tool hilft Ihnen, eine Immobilie als Kapitalanlage rational zu bewerten.
+        
+        **Die Funktionen im Überblick:**
+        
+        *   **📊 Ist-Mietrendite**: Der "Status Quo". Wie rentiert sich das Objekt heute mit der aktuellen Miete?
+        *   **🔮 Miet-Szenario**: Wie entwickelt sich die Rendite bei einer Mieterhöhung (z.B. +15%)? Lohnt sich der Kauf langfristig?
+        *   **⚖️ Leverage & Cashflow**: Der wichtigste Tab. Berechnet Ihre Eigenkapitalrendite (Hebel) und Ihren monatlichen Cashflow (was müssen Sie draufzahlen?).
+        *   **🏗️ Steuern & Sanierung**: Prüft die "15%-Grenze" für Renovierungen und berechnet Ihren Steuervorteil durch Abschreibung (AfA).
+        *   **🕵️ Due Diligence**: Eine Checkliste für die "versteckten Risiken" (WEG-Protokolle, Heizung, Sonderumlagen).
+        
+        **Tipp**: Starten Sie mit der Eingabe des Kaufpreises links und arbeiten Sie sich durch die Reiter!
+        """,
+        "status_header": "1. Status Quo: Aktuelle Rendite",
         "calc_yield": "Netto-Mietrendite",
         "calc_cf": "Cashflow",
         "details_header": "🔍 Details & Erklärung",
@@ -137,11 +153,27 @@ TEXTS = {
         "input_loc": "Rent Control (Location)",
         "loc_active": "Active (max 15% increase)",
         "loc_inactive": "Inactive (max 20% increase)",
-        "tab_status": "1. Current Net Yield",
-        "tab_scenario": "2. Rent Scenario",
+        "tab_intro": "Introduction & Guide",
+        "tab_status": "Status Quo (Yield)",
+        "tab_scenario": "Rent Scenario",
         "tab_leverage": "3. Leverage & Cashflow",
         "tab_tax": "4. Tax & Renovation",
         "tab_due_diligence": "5. Due Diligence",
+        "intro_header": "👋 Welcome to the Real Estate Investment Calculator",
+        "intro_text": """
+        This tool helps you rationally evaluate a property as an investment.
+        
+        **Overview of Features:**
+        
+        *   **📊 Status Quo Yield**: How does the property perform today with current rent?
+        *   **🔮 Rent Scenario**: How does the yield evolve with a rent increase (e.g. +15%)? Is it worth it long-term?
+        *   **⚖️ Leverage & Cashflow**: The most important tab. Calculates Return on Equity (Leverage) and monthly Cashflow (Do you pay on top?).
+        *   **🏗️ Tax & Renovation**: Checks the "15% Rule" for renovations and calculates tax benefits (Depreciation/AfA).
+        *   **🕵️ Due Diligence**: A checklist for "hidden risks" (HOA protocols, Heating, Special Levies).
+        
+        **Tip**: Start by entering the Purchase Price on the left and work your way through the tabs!
+        """,
+        "status_header": "1. Status Quo: Current Yield",
         "calc_yield": "Net Rental Yield",
         "calc_cf": "Cashflow",
         "details_header": "🔍 Context & Explanation",
@@ -237,6 +269,11 @@ TEXTS = {
 # Initialize Session State
 if 'lang' not in st.session_state:
     st.session_state.lang = "DE"
+if 'kp' not in st.session_state:
+    st.session_state.kp = 469000.0
+# Safeguard: If user (or glitch) set it to 0, reset to default (optional UX choice)
+if st.session_state.kp == 0.0:
+    st.session_state.kp = 469000.0
 
 # Language Toggle (Top of Sidebar)
 # Language Toggle (Compact)
@@ -276,15 +313,18 @@ def create_pdf(lang_code, inputs, results):
         """Replace non-latin-1 chars"""
         replacements = {
             "€": "EUR", "⚠️": "[WARN]", "✅": "[OK]", "🔴": "[BAD]", 
-            "🟡": "[AVG]", "🟢": "[GOOD]", "„": '"', "“": '"'
+            "🟡": "[AVG]", "🟢": "[GOOD]", "„": '"', "“": '"',
+            "ℹ️": "[INFO]", "🔢": "#", "📈": "(up)", "📉": "(down)",
+            "🚀": "(!)", "💰": "($)", "🕵️‍♂️": "[Check]", "🧠": "[Mind]"
         }
         for k, v in replacements.items():
             text = text.replace(k, v)
+        
         try:
             return text.encode('latin-1', 'replace').decode('latin-1')
-        except:
-            return text
-            
+        except Exception as e:
+            return "?"
+
     title = "Immobilien Investment Dossier" if lang_code == "DE" else "Real Estate Investment Dossier"
     pdf.cell(0, 10, safe_text(title), ln=True, align='C')
     pdf.ln(10)
@@ -315,6 +355,7 @@ def create_pdf(lang_code, inputs, results):
     pdf.set_font("Arial", 'I', 10)
     pdf.multi_cell(0, 5, safe_text("Disclaimer: Educational Purpose Only. No Financial Advice."))
     
+    # Return bytes directly
     return pdf.output(dest='S').encode('latin-1')
 
 # --- MAIN GUI ---
@@ -338,15 +379,23 @@ with st.sidebar:
         T["tab_tax"], 
         T["tab_due_diligence"]
     ]
-    nav_selection = st.radio(T["sidebar_header"], nav_options)
+    nav_selection = st.radio(
+        "Navigation", 
+        [T["tab_intro"], T["tab_status"], T["tab_scenario"], T["tab_leverage"], T["tab_tax"], T["tab_due_diligence"]]
+    )
 
 st.title(T["title"])
 
 # --- SIDEBAR INPUTS (Fixed) ---
 with st.sidebar:
     st.markdown("---")
-    # Kaufpreis is fixed in sidebar as requested
-    kaufpreis = st.number_input(T["input_price"], value=st.session_state.kp, step=5000.0, format="%.2f", key="kp")
+    kaufpreis = st.number_input(T["input_price"], step=5000.0, format="%.2f", key="kp")
+    
+    st.caption("Kaufnebenkosten / Closing Costs (%)")
+    col_nk1, col_nk2, col_nk3 = st.columns(3)
+    p_makler = col_nk1.number_input("Makler", value=3.57, step=0.1)
+    p_tax = col_nk2.number_input("Tax/Steuer", value=3.5, step=0.1)
+    p_notar = col_nk3.number_input("Notar", value=2.0, step=0.1)
 
 # --- PAGE RENDERING ---
 
@@ -355,11 +404,18 @@ kaltmiete_pa = st.session_state.km
 costs_pa = st.session_state.cost
 
 # Run Basic Calculations
-NK_EURO = re_tools.berechne_kaufnebenkosten(kaufpreis)
+NK_EURO = re_tools.berechne_kaufnebenkosten(kaufpreis, p_makler, p_tax, p_notar)
 rendite, reinertrag, invest = re_tools.berechne_netto_mietrendite(kaufpreis, NK_EURO, kaltmiete_pa, costs_pa)
 
+# 0. INTRODUCTION
+if nav_selection == T["tab_intro"]:
+    st.header(T["intro_header"])
+    st.markdown(T["intro_text"])
+    
+    st.info(T["disclaimer"])
+
 # 1. STATUS QUO
-if nav_selection == T["tab_status"]:
+elif nav_selection == T["tab_status"]:
     st.header(T["tab_status"])
     
     # --- BASICS INPUTS (Rent & Costs only) ---
@@ -637,13 +693,17 @@ with st.sidebar:
         "Cashflow (p.m.)": f"{(re_tools.berechne_cashflow_detail(kaufpreis, NK_EURO, kaltmiete_pa, costs_pa, pdf_zins, pdf_ek)['cashflow']/12):,.2f} EUR"
     }
     
-    pdf_bytes = create_pdf(st.session_state.lang, input_data, result_data)
-    st.download_button(
-        label="📄 PDF Download",
-        data=pdf_bytes,
-        file_name="investment_dossier.pdf",
-        mime="application/pdf"
-    )
+    try:
+        pdf_bytes = create_pdf(st.session_state.lang, input_data, result_data)
+        st.caption(f"Debug: PDF Size = {len(pdf_bytes)} bytes")
+        
+        import base64
+        b64_pdf = base64.b64encode(pdf_bytes).decode()
+        href = f'<a href="data:application/pdf;base64,{b64_pdf}" download="investment_dossier.pdf">📄 Download PDF</a>'
+        st.markdown(href, unsafe_allow_html=True)
+        
+    except Exception as e:
+        st.error(f"PDF Error: {e}")
     
     st.markdown("---")
     st.caption(T["disclaimer"])
