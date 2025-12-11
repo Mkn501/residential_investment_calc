@@ -14,7 +14,7 @@ A comprehensive real estate investment calculator for analyzing rental propertie
 
 ## 🚀 Live Demo
 
-[Coming soon - Deploy your own!]
+https://residentialinvestmentcalc-ikffwbbuqfpvu2ksd9iolx.streamlit.app/
 
 ## 💻 Local Development
 
