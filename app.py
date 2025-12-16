@@ -34,7 +34,7 @@ if st.session_state.kp == 0.0:
 with st.sidebar:
     lang_choice = st.radio(
         "Sprache/Language", 
-        ["🇩🇪 Deutsch", "🇺🇸 English"], 
+        ["🇩🇪 Deutsch", "🇬🇧 English"],
         index=0 if st.session_state.lang == "DE" else 1,
         label_visibility="collapsed",
         horizontal=True
